@@ -1,8 +1,21 @@
-// Features array from LocalStorage
-let features = JSON.parse(localStorage.getItem('features')) || [];
-let currentFeatureId = null;
+// Define interfaces for data structure
+interface Task {
+    id: number;
+    text: string;
+    completed: boolean;
+}
 
-const app = document.getElementById('app');
+interface Feature {
+    id: number;
+    text: string;
+    tasks: Task[];
+}
+
+// Features array from LocalStorage
+let features: Feature[] = JSON.parse(localStorage.getItem('features') || '[]');
+let currentFeatureId: number | null = null;
+
+const app = document.getElementById('app') as HTMLElement;
 
 // Initial render based on URL
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,8 +38,8 @@ window.addEventListener('popstate', () => {
 });
 
 // Event delegation for all button clicks
-app.addEventListener('click', (e) => {
-    const target = e.target as any;
+app.addEventListener('click', (e: Event) => {
+    const target = e.target as HTMLElement;
 
     // Back to Features
     if (target.classList.contains('back-button')) {
@@ -36,49 +49,50 @@ app.addEventListener('click', (e) => {
 
     // Delete Feature
     if (target.classList.contains('delete-feature')) {
-        const featureId = parseInt(target.dataset.featureId, 10);
+        const featureId = parseInt(target.dataset.featureId || '0', 10);
         deleteFeature(featureId);
         return;
     }
 
     // Navigate to Task View
-    if (target.closest('.feature-item') && !target.classList.contains('delete-feature')) {
-        const featureId = parseInt(target.closest('.feature-item').dataset.featureId, 10);
+    const featureItem = target.closest('.feature-item') as HTMLElement;
+    if (featureItem && !target.classList.contains('delete-feature')) {
+        const featureId = parseInt(featureItem.dataset.featureId || '0', 10);
         renderTaskView(featureId);
         return;
     }
 
     // Edit Task
     if (target.classList.contains('edit-task')) {
-        const featureId = parseInt(target.dataset.featureId, 10);
-        const taskId = parseInt(target.dataset.taskId, 10);
+        const featureId = parseInt(target.dataset.featureId || '0', 10);
+        const taskId = parseInt(target.dataset.taskId || '0', 10);
         editTask(featureId, taskId);
         return;
     }
 
     // Delete Task
     if (target.classList.contains('delete-task')) {
-        const featureId = parseInt(target.dataset.featureId, 10);
-        const taskId = parseInt(target.dataset.taskId, 10);
+        const featureId = parseInt(target.dataset.featureId || '0', 10);
+        const taskId = parseInt(target.dataset.taskId || '0', 10);
         deleteTask(featureId, taskId);
         return;
     }
 });
 
 // Get feature ID from URL
-function getFeatureIdFromUrl() {
+function getFeatureIdFromUrl(): number | null {
     const path = window.location.pathname;
     const match = path.match(/\/feature\/(\d+)/);
     return match ? parseInt(match[1], 10) : null;
 }
 
 // Save features to LocalStorage
-function saveFeatures() {
+function saveFeatures(): void {
     localStorage.setItem('features', JSON.stringify(features));
 }
 
 // Home View: List Features
-function renderHome() {
+function renderHome(): void {
     currentFeatureId = null;
     history.pushState(null, '', '/');
     app.innerHTML = `
@@ -92,11 +106,11 @@ function renderHome() {
     </div>
   `;
 
-    const featureContainer = document.getElementById('feature-container');
+    const featureContainer = document.getElementById('feature-container') as HTMLElement;
     features.forEach(feature => {
         const div = document.createElement('div');
         div.classList.add('feature-item');
-        div.dataset.featureId = feature.id; // Store feature ID in data attribute
+        div.dataset.featureId = feature.id.toString();
         div.innerHTML = `
       <h2>${feature.text}</h2>
       <button class="delete-feature" data-feature-id="${feature.id}">Delete</button>
@@ -104,12 +118,13 @@ function renderHome() {
         featureContainer.appendChild(div);
     });
 
-    const featureForm = app.querySelector('.add-feature-form');
-    featureForm.addEventListener('submit', (e) => {
+    const featureForm = app.querySelector('.add-feature-form') as HTMLFormElement;
+    featureForm.addEventListener('submit', (e: Event) => {
         e.preventDefault();
-        const featureText = (featureForm.querySelector('#feature-input') as any).value.trim();
+        const featureInput = featureForm.querySelector('#feature-input') as HTMLInputElement;
+        const featureText = featureInput.value.trim();
         if (featureText) {
-            const feature = { id: Date.now(), text: featureText, tasks: [] };
+            const feature: Feature = { id: Date.now(), text: featureText, tasks: [] };
             features.push(feature);
             saveFeatures();
             renderHome();
@@ -118,7 +133,7 @@ function renderHome() {
 }
 
 // Task View: Show and Manage Tasks for a Feature
-function renderTaskView(featureId) {
+function renderTaskView(featureId: number): void {
     currentFeatureId = featureId;
     const feature = features.find(f => f.id === featureId);
     if (!feature) return renderHome();
@@ -136,7 +151,7 @@ function renderTaskView(featureId) {
     </div>
   `;
 
-    const taskList = document.getElementById('task-list');
+    const taskList = document.getElementById('task-list') as HTMLUListElement;
     feature.tasks.forEach(task => {
         const li = document.createElement('li');
         li.classList.add('task-item');
@@ -145,24 +160,27 @@ function renderTaskView(featureId) {
       <span>${task.text}</span>
       <div class="task-actions">
         <input type="checkbox" ${task.completed ? 'checked' : ''}>
-        <button class="edit edit-task" data-feature-id="${feature.id}" data-task-id="${task.id}">Edit</button>
-        <button class="delete delete-task" data-feature-id="${feature.id}" data-task-id="${task.id}">Delete</button>
+        <button class="edit-task" data-feature-id="${feature.id}" data-task-id="${task.id}">Edit</button>
+        <button class="delete-task" data-feature-id="${feature.id}" data-task-id="${task.id}">Delete</button>
       </div>
     `;
-        li.querySelector('input[type="checkbox"]').addEventListener('change', () => {
-            task.completed = !task.completed;
+        const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        checkbox.addEventListener('change', () => {
+            task.completed = checkbox.checked;
             saveFeatures();
             renderTaskView(featureId);
         });
         taskList.appendChild(li);
     });
 
-    const taskForm = app.querySelector('.task-form');
-    taskForm.addEventListener('submit', (e) => {
+    const taskForm = app.querySelector('.task-form') as HTMLFormElement;
+    taskForm.addEventListener('submit', (e: Event) => {
         e.preventDefault();
-        const taskText = (taskForm.querySelector('#task-input') as any).value.trim();
+        const taskInput = taskForm.querySelector('#task-input') as HTMLInputElement;
+        const taskText = taskInput.value.trim();
         if (taskText) {
-            feature.tasks.push({ id: Date.now(), text: taskText, completed: false });
+            const task: Task = { id: Date.now(), text: taskText, completed: false };
+            feature.tasks.push(task);
             saveFeatures();
             renderTaskView(featureId);
         }
@@ -170,14 +188,14 @@ function renderTaskView(featureId) {
 }
 
 // Delete Feature
-function deleteFeature(featureId) {
+function deleteFeature(featureId: number): void {
     features = features.filter(f => f.id !== featureId);
     saveFeatures();
     renderHome();
 }
 
 // Delete Task
-function deleteTask(featureId, taskId) {
+function deleteTask(featureId: number, taskId: number): void {
     const feature = features.find(f => f.id === featureId);
     if (feature) {
         feature.tasks = feature.tasks.filter(t => t.id !== taskId);
@@ -187,9 +205,9 @@ function deleteTask(featureId, taskId) {
 }
 
 // Edit Task
-function editTask(featureId, taskId) {
+function editTask(featureId: number, taskId: number): void {
     const feature = features.find(f => f.id === featureId);
-    const task = feature.tasks.find(t => t.id === taskId);
+    const task = feature?.tasks.find(t => t.id === taskId);
     if (!task) return;
 
     const newText = prompt('Edit task:', task.text);

@@ -8,9 +8,7 @@
     "build:scss": "sass src/public/style.scss dist/public/style.css",
     "build:public": "cpy src/public/**/* !src/public/**/*.scss !src/public/**/*.ts dist/public --parents",
     "build": "npm run build:ts && npm run build:public && npm run build:scss",
-    "start:server": "node dist/app.js",
-    "start:electron": "electron .",
-    "dev": "concurrently \"npm run start:server\" \"npm run start:electron\"",
+    "start": "electron .",
     "package": "electron-builder"
   },
   "build": {
@@ -22,11 +20,7 @@
       "output": "release"
     }
   },
-  "dependencies": {
-    "express": "^5.1.0"
-  },
   "devDependencies": {
-    "@types/express": "^5.0.1",
     "@types/node": "^22.14.0",
     "concurrently": "^9.1.2",
     "cpy-cli": "^5.0.0",
