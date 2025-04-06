@@ -1,80 +1,93 @@
-// Define interfaces for data structure
+import { Database } from './db';
+
+// Define interfaces (aligned with db.ts)
 interface Task {
-    id: number;
-    text: string;
-    completed: boolean;
+    id?: number;
+    featureId: number;
+    title: string;
+    description: string;
+    status: string;
+    created: Date;
+    lastModified: Date;
 }
 
 interface Feature {
-    id: number;
-    text: string;
-    tasks: Task[];
+    id?: number;
+    title: string;
+    description: string;
+    status: string;
+    created: Date;
+    lastModified: Date;
+    tasks?: Task[];
 }
 
-// Features array from LocalStorage
-let features: Feature[] = JSON.parse(localStorage.getItem('features') || '[]');
-let currentFeatureId: number | null = null;
-
+// Initialize the database
+const db = new Database();
 const app = document.getElementById('app') as HTMLElement;
 
 // Initial render based on URL
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const featureId = getFeatureIdFromUrl();
-    if (featureId && features.some(f => f.id === featureId)) {
-        renderTaskView(featureId);
+    if (featureId) {
+        const feature = await db.getFeature(featureId);
+        if (feature) {
+            await renderTaskView(featureId);
+        } else {
+            await renderHome();
+        }
     } else {
-        renderHome();
+        await renderHome();
     }
 });
 
 // Handle browser back/forward navigation
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', async () => {
     const featureId = getFeatureIdFromUrl();
-    if (featureId && features.some(f => f.id === featureId)) {
-        renderTaskView(featureId);
+    if (featureId) {
+        const feature = await db.getFeature(featureId);
+        if (feature) {
+            await renderTaskView(featureId);
+        } else {
+            await renderHome();
+        }
     } else {
-        renderHome();
+        await renderHome();
     }
 });
 
 // Event delegation for all button clicks
-app.addEventListener('click', (e: Event) => {
+app.addEventListener('click', async (e: Event) => {
     const target = e.target as HTMLElement;
 
-    // Back to Features
     if (target.classList.contains('back-button')) {
-        renderHome();
+        await renderHome();
         return;
     }
 
-    // Delete Feature
     if (target.classList.contains('delete-feature')) {
         const featureId = parseInt(target.dataset.featureId || '0', 10);
-        deleteFeature(featureId);
+        await deleteFeature(featureId);
         return;
     }
 
-    // Navigate to Task View
     const featureItem = target.closest('.feature-item') as HTMLElement;
     if (featureItem && !target.classList.contains('delete-feature')) {
         const featureId = parseInt(featureItem.dataset.featureId || '0', 10);
-        renderTaskView(featureId);
+        await renderTaskView(featureId);
         return;
     }
 
-    // Edit Task
     if (target.classList.contains('edit-task')) {
         const featureId = parseInt(target.dataset.featureId || '0', 10);
         const taskId = parseInt(target.dataset.taskId || '0', 10);
-        editTask(featureId, taskId);
+        await editTask(featureId, taskId);
         return;
     }
 
-    // Delete Task
     if (target.classList.contains('delete-task')) {
         const featureId = parseInt(target.dataset.featureId || '0', 10);
         const taskId = parseInt(target.dataset.taskId || '0', 10);
-        deleteTask(featureId, taskId);
+        await deleteTask(featureId, taskId);
         return;
     }
 });
@@ -86,14 +99,8 @@ function getFeatureIdFromUrl(): number | null {
     return match ? parseInt(match[1], 10) : null;
 }
 
-// Save features to LocalStorage
-function saveFeatures(): void {
-    localStorage.setItem('features', JSON.stringify(features));
-}
-
 // Home View: List Features
-function renderHome(): void {
-    currentFeatureId = null;
+async function renderHome(): Promise<void> {
     history.pushState(null, '', '/');
     app.innerHTML = `
     <h1>Feature & Task Manager</h1>
@@ -107,40 +114,47 @@ function renderHome(): void {
   `;
 
     const featureContainer = document.getElementById('feature-container') as HTMLElement;
+    const features = await db.getAllFeatures();
     features.forEach(feature => {
         const div = document.createElement('div');
         div.classList.add('feature-item');
-        div.dataset.featureId = feature.id.toString();
+        div.dataset.featureId = feature.id!.toString();
         div.innerHTML = `
-      <h2>${feature.text}</h2>
+      <h2>${feature.title}</h2>
       <button class="delete-feature" data-feature-id="${feature.id}">Delete</button>
     `;
         featureContainer.appendChild(div);
     });
 
     const featureForm = app.querySelector('.add-feature-form') as HTMLFormElement;
-    featureForm.addEventListener('submit', (e: Event) => {
+    featureForm.addEventListener('submit', async (e: Event) => {
         e.preventDefault();
         const featureInput = featureForm.querySelector('#feature-input') as HTMLInputElement;
-        const featureText = featureInput.value.trim();
-        if (featureText) {
-            const feature: Feature = { id: Date.now(), text: featureText, tasks: [] };
-            features.push(feature);
-            saveFeatures();
-            renderHome();
+        const featureTitle = featureInput.value.trim();
+        if (featureTitle) {
+            const feature: Feature = {
+                title: featureTitle,
+                description: '',
+                status: 'open',
+                created: new Date(),
+                lastModified: new Date(),
+            };
+            await db.addFeature(feature);
+            await renderHome();
         }
     });
 }
 
 // Task View: Show and Manage Tasks for a Feature
-function renderTaskView(featureId: number): void {
-    currentFeatureId = featureId;
-    const feature = features.find(f => f.id === featureId);
+async function renderTaskView(featureId: number): Promise<void> {
+    const feature = await db.getFeature(featureId);
     if (!feature) return renderHome();
+
+    const tasks = await db.getTasksByFeature(featureId);
 
     history.pushState(null, '', `/feature/${featureId}`);
     app.innerHTML = `
-    <h1>${feature.text}</h1>
+    <h1>${feature.title}</h1>
     <div class="task-view">
       <button class="back-button">Back to Features</button>
       <form class="task-form">
@@ -152,68 +166,72 @@ function renderTaskView(featureId: number): void {
   `;
 
     const taskList = document.getElementById('task-list') as HTMLUListElement;
-    feature.tasks.forEach(task => {
+    tasks.forEach(task => {
         const li = document.createElement('li');
         li.classList.add('task-item');
-        if (task.completed) li.classList.add('completed');
+        if (task.status === 'completed') li.classList.add('completed');
         li.innerHTML = `
-      <span>${task.text}</span>
+      <span>${task.title}</span>
       <div class="task-actions">
-        <input type="checkbox" ${task.completed ? 'checked' : ''}>
-        <button class="edit-task" data-feature-id="${feature.id}" data-task-id="${task.id}">Edit</button>
-        <button class="delete-task" data-feature-id="${feature.id}" data-task-id="${task.id}">Delete</button>
+        <input type="checkbox" ${task.status === 'completed' ? 'checked' : ''}>
+        <button class="edit-task edit" data-feature-id="${feature.id}" data-task-id="${task.id}">Edit</button>
+        <button class="delete-task delete" data-feature-id="${feature.id}" data-task-id="${task.id}">Delete</button>
       </div>
     `;
         const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        checkbox.addEventListener('change', () => {
-            task.completed = checkbox.checked;
-            saveFeatures();
-            renderTaskView(featureId);
+        checkbox.addEventListener('change', async () => {
+            task.status = checkbox.checked ? 'completed' : 'open';
+            task.lastModified = new Date();
+            await db.updateTask(task);
+            await renderTaskView(featureId);
         });
         taskList.appendChild(li);
     });
 
     const taskForm = app.querySelector('.task-form') as HTMLFormElement;
-    taskForm.addEventListener('submit', (e: Event) => {
+    taskForm.addEventListener('submit', async (e: Event) => {
         e.preventDefault();
         const taskInput = taskForm.querySelector('#task-input') as HTMLInputElement;
-        const taskText = taskInput.value.trim();
-        if (taskText) {
-            const task: Task = { id: Date.now(), text: taskText, completed: false };
-            feature.tasks.push(task);
-            saveFeatures();
-            renderTaskView(featureId);
+        const taskTitle = taskInput.value.trim();
+        if (taskTitle) {
+            const task: Task = {
+                featureId: featureId,
+                title: taskTitle,
+                description: '',
+                status: 'open',
+                created: new Date(),
+                lastModified: new Date(),
+            };
+            await db.addTask(task);
+            await renderTaskView(featureId);
         }
     });
 }
 
 // Delete Feature
-function deleteFeature(featureId: number): void {
-    features = features.filter(f => f.id !== featureId);
-    saveFeatures();
-    renderHome();
+async function deleteFeature(featureId: number): Promise<void> {
+    await db.deleteFeature(featureId);
+    await renderHome();
 }
 
 // Delete Task
-function deleteTask(featureId: number, taskId: number): void {
-    const feature = features.find(f => f.id === featureId);
-    if (feature) {
-        feature.tasks = feature.tasks.filter(t => t.id !== taskId);
-        saveFeatures();
-        renderTaskView(featureId);
-    }
+async function deleteTask(featureId: number, taskId: number): Promise<void> {
+    await db.deleteTask(taskId);
+    await renderTaskView(featureId);
 }
 
 // Edit Task
-function editTask(featureId: number, taskId: number): void {
-    const feature = features.find(f => f.id === featureId);
-    const task = feature?.tasks.find(t => t.id === taskId);
+async function editTask(featureId: number, taskId: number): Promise<void> {
+    const feature = await db.getFeature(featureId);
+    const tasks = await db.getTasksByFeature(featureId);
+    const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const newText = prompt('Edit task:', task.text);
-    if (newText !== null && newText.trim()) {
-        task.text = newText.trim();
-        saveFeatures();
-        renderTaskView(featureId);
+    const newTitle = prompt('Edit task:', task.title);
+    if (newTitle !== null && newTitle.trim()) {
+        task.title = newTitle.trim();
+        task.lastModified = new Date();
+        await db.updateTask(task);
+        await renderTaskView(featureId);
     }
 }

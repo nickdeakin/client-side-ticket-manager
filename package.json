@@ -4,10 +4,11 @@
   "description": "",
   "main": "dist/main.js",
   "scripts": {
-    "build:ts": "tsc",
+    "build:ts": "tsc -p tsconfig.json",
+    "build:webpack": "webpack --config webpack.config.js",
     "build:scss": "sass src/public/style.scss dist/public/style.css",
     "build:public": "cpy src/public/**/* !src/public/**/*.scss !src/public/**/*.ts dist/public --parents",
-    "build": "npm run build:ts && npm run build:public && npm run build:scss",
+    "build": "npm run build:ts && npm run build:webpack && npm run build:public && npm run build:scss",
     "start": "electron .",
     "package": "electron-builder"
   },
@@ -27,7 +28,10 @@
     "electron": "^35.1.4",
     "electron-builder": "^26.0.12",
     "sass": "^1.86.3",
-    "typescript": "^5.8.3"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
   },
   "private": true
 }
