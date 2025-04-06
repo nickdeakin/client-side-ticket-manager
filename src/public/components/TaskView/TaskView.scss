@@ -1,0 +1,93 @@
+@use 'sass:color';
+@use "../../variables";
+
+.task-view {
+  .back-button {
+    background-color: variables.$back-color;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: color.adjust(variables.$back-color, $lightness: - variables.$hover-darken);
+    }
+  }
+
+  .task-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: variables.$primary-color;
+      padding: 10px 20px;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:hover {
+        background-color: color.adjust(variables.$primary-color, $lightness: - variables.$hover-darken);
+      }
+    }
+  }
+
+  .task-list {
+    list-style: none;
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+
+      &.completed span {
+        text-decoration: line-through;
+        color: #888;
+      }
+
+      .task-actions {
+        display: flex;
+        gap: 10px;
+
+        button.edit-task {
+          background-color: variables.$edit-color;
+          color: #000;
+          padding: 5px 10px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+
+          &:hover {
+            background-color: color.adjust(variables.$edit-color, $lightness: - variables.$hover-darken);
+          }
+        }
+
+        button.delete-task {
+          background-color: variables.$danger-color;
+          padding: 5px 10px;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+
+          &:hover {
+            background-color: color.adjust(variables.$danger-color, $lightness: - variables.$hover-darken);
+          }
+        }
+      }
+    }
+  }
+}
