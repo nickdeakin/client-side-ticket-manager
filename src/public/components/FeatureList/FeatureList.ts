@@ -1,4 +1,5 @@
-import { Database } from '../../db';
+import {Database} from '../../db';
+import Mustache from 'mustache';
 import template from './FeatureList.html';
 import './FeatureList.scss';
 
@@ -13,20 +14,16 @@ export class FeatureList {
     }
 
     async render(): Promise<void> {
-        this.container.innerHTML = template;
-        const featureContainer = this.container.querySelector('#feature-container') as HTMLElement;
         const features = await this.db.getAllFeatures();
+        const view = {
+            features: features.map(feature => ({
+                id: feature.id,
+                title: feature.title,
+            })),
+            hasFeatures: features.length > 0,
+        };
 
-        features.forEach(feature => {
-            const div = document.createElement('div');
-            div.classList.add('feature-item');
-            div.dataset.featureId = feature.id!.toString();
-            div.innerHTML = `
-        <h2>${feature.title}</h2>
-        <button class="delete-feature" data-feature-id="${feature.id}">Delete</button>
-      `;
-            featureContainer.appendChild(div);
-        });
+        this.container.innerHTML = Mustache.render(template, view);
 
         const featureForm = this.container.querySelector('.add-feature-form') as HTMLFormElement;
         featureForm.addEventListener('submit', async (e: Event) => {
@@ -41,8 +38,18 @@ export class FeatureList {
                     created: new Date(),
                     lastModified: new Date(),
                 });
+                featureInput.value = '';
                 await this.render();
             }
+        });
+
+        const deleteButtons = this.container.querySelectorAll('.delete-feature');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const featureId = parseInt(button.getAttribute('data-feature-id') || '0', 10);
+                await this.db.deleteFeature(featureId);
+                await this.render();
+            });
         });
     }
 }

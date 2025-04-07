@@ -5,5 +5,21 @@
         <input type="text" id="task-input" placeholder="Add a task..." required>
         <button type="submit">Add Task</button>
     </form>
-    <ul class="task-list" id="task-list"></ul>
+    <ul class="task-list" id="task-list">
+        {{#tasks}}
+        <li class="task-item {{#isCompleted}}completed{{/isCompleted}}" data-task-id="{{id}}">
+            <span class="task-title">{{title}}</span>
+            <form class="edit-task-form" style="display: none;">
+                <input type="text" class="edit-task-input" value="{{title}}" required>
+                <button type="submit">Save</button>
+                <button type="button" class="cancel-edit">Cancel</button>
+            </form>
+            <div class="task-actions">
+                <input type="checkbox" {{checked}}>
+                <button class="edit-task" data-feature-id="{{featureId}}" data-task-id="{{id}}">Edit</button>
+                <button class="delete-task" data-feature-id="{{featureId}}" data-task-id="{{id}}">Delete</button>
+            </div>
+        </li>
+        {{/tasks}}
+    </ul>
 </div>

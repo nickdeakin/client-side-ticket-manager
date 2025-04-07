@@ -1,6 +1,18 @@
 <h1>Feature & Task Manager</h1>
 <div class="feature-list">
-    <div id="feature-container"></div>
+    <div id="feature-container">
+        {{#hasFeatures}}
+        {{#features}}
+        <div class="feature-item" data-feature-id="{{id}}">
+            <h2>{{title}}</h2>
+            <button class="delete-feature" data-feature-id="{{id}}">Delete</button>
+        </div>
+        {{/features}}
+        {{/hasFeatures}}
+        {{^hasFeatures}}
+        <p>No features yet</p>
+        {{/hasFeatures}}
+    </div>
     <form class="add-feature-form">
         <input type="text" id="feature-input" placeholder="Add a new feature..." required>
         <button type="submit">Add Feature</button>

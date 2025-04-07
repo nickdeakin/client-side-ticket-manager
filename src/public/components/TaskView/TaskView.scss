@@ -53,9 +53,47 @@
       padding: 10px;
       border-bottom: 1px solid #eee;
 
-      &.completed span {
+      &.completed .task-title {
         text-decoration: line-through;
         color: #888;
+      }
+
+      .edit-task-form {
+        display: none; // Hidden by default
+        flex: 1;
+        gap: 10px;
+
+        input {
+          flex: 1;
+          padding: 5px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+
+        button {
+          padding: 5px 10px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+
+          &[type="submit"] {
+            background-color: #28a745;
+            color: #fff;
+
+            &:hover {
+              background-color: color.adjust(#28a745, $lightness: -10%);
+            }
+          }
+
+          &.cancel-edit {
+            background-color: #6c757d;
+            color: #fff;
+
+            &:hover {
+              background-color: color.adjust(#6c757d, $lightness: -10%);
+            }
+          }
+        }
       }
 
       .task-actions {
