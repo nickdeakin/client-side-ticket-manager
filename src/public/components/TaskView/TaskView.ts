@@ -1,4 +1,4 @@
-import {Database} from '../../db';
+import Database from '../../db';
 import Mustache from 'mustache';
 import template from './TaskView.html';
 import './TaskView.scss';
@@ -6,18 +6,20 @@ import './TaskView.scss';
 export class TaskView {
     private db: Database;
     private container: HTMLElement;
+    private projectId: number;
     private featureId: number;
 
-    constructor(container: HTMLElement, db: Database, featureId: number) {
+    constructor(container: HTMLElement, db: Database, projectId: number, featureId: number) {
         this.container = container;
         this.db = db;
+        this.projectId = projectId;
         this.featureId = featureId;
         this.render();
     }
 
     async render(): Promise<void> {
         const feature = await this.db.getFeature(this.featureId);
-        if (!feature) {
+        if (!feature || feature.projectId !== this.projectId) {
             this.container.innerHTML = '<p>Feature not found</p>';
             return;
         }
@@ -38,7 +40,6 @@ export class TaskView {
 
         const taskList = this.container.querySelector('#task-list') as HTMLUListElement;
 
-        // Checkbox toggles
         const checkboxes = taskList.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach((checkbox, index) => {
             checkbox.addEventListener('change', async () => {
@@ -49,7 +50,6 @@ export class TaskView {
             });
         });
 
-        // Edit functionality
         const editButtons = taskList.querySelectorAll('.edit-task');
         editButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -57,8 +57,8 @@ export class TaskView {
                 const taskTitle = taskItem.querySelector('.task-title') as HTMLElement;
                 const editForm = taskItem.querySelector('.edit-task-form') as HTMLFormElement;
 
-                taskTitle.style.display = 'none'; // Hide title
-                editForm.style.display = 'flex';  // Show form
+                taskTitle.style.display = 'none';
+                editForm.style.display = 'flex';
 
                 editForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -73,7 +73,7 @@ export class TaskView {
                             await this.render();
                         }
                     }
-                }, { once: true }); // Listener removed after one use
+                }, { once: true });
 
                 const cancelButton = editForm.querySelector('.cancel-edit') as HTMLButtonElement;
                 cancelButton.addEventListener('click', () => {
@@ -83,7 +83,6 @@ export class TaskView {
             });
         });
 
-        // Delete buttons
         const deleteButtons = taskList.querySelectorAll('.delete-task');
         deleteButtons.forEach(button => {
             button.addEventListener('click', async () => {
@@ -93,7 +92,6 @@ export class TaskView {
             });
         });
 
-        // Add task form
         const taskForm = this.container.querySelector('.task-form') as HTMLFormElement;
         taskForm.addEventListener('submit', async (e: Event) => {
             e.preventDefault();
@@ -113,10 +111,9 @@ export class TaskView {
             }
         });
 
-        // Back button
         const backButton = this.container.querySelector('.back-button') as HTMLButtonElement;
         backButton.addEventListener('click', () => {
-            history.pushState(null, '', '/');
+            history.pushState(null, '', `/project/${this.projectId}`);
             this.container.dispatchEvent(new Event('navigate'));
         });
     }

@@ -1,4 +1,4 @@
-import {Database} from '../../db';
+import Database from '../../db';
 import Mustache from 'mustache';
 import template from './FeatureList.html';
 import './FeatureList.scss';
@@ -6,16 +6,25 @@ import './FeatureList.scss';
 export class FeatureList {
     private db: Database;
     private container: HTMLElement;
+    private projectId: number;
 
-    constructor(container: HTMLElement, db: Database) {
+    constructor(container: HTMLElement, db: Database, projectId: number) {
         this.container = container;
         this.db = db;
+        this.projectId = projectId;
         this.render();
     }
 
     async render(): Promise<void> {
-        const features = await this.db.getAllFeatures();
+        const project = await this.db.getProject(this.projectId);
+        if (!project) {
+            this.container.innerHTML = '<p>Project not found</p>';
+            return;
+        }
+
+        const features = await this.db.getFeaturesByProject(this.projectId);
         const view = {
+            projectTitle: project.title,
             features: features.map(feature => ({
                 id: feature.id,
                 title: feature.title,
@@ -32,6 +41,7 @@ export class FeatureList {
             const featureTitle = featureInput.value.trim();
             if (featureTitle) {
                 await this.db.addFeature({
+                    projectId: this.projectId,
                     title: featureTitle,
                     description: '',
                     status: 'open',
@@ -50,6 +60,12 @@ export class FeatureList {
                 await this.db.deleteFeature(featureId);
                 await this.render();
             });
+        });
+
+        const backButton = this.container.querySelector('.back-button') as HTMLButtonElement;
+        backButton.addEventListener('click', () => {
+            history.pushState(null, '', '/');
+            this.container.dispatchEvent(new Event('navigate'));
         });
     }
 }

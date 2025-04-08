@@ -1,22 +1,8 @@
 @use 'sass:color';
 @use "../../variables";
 
-.feature-list {
-  .back-button {
-    background-color: variables.$back-color;
-    padding: 10px 20px;
-    margin-bottom: 20px;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-
-    &:hover {
-      background-color: color.adjust(variables.$back-color, $lightness: -10%);
-    }
-  }
-
-  .feature-item {
+.project-list {
+  .project-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -40,12 +26,12 @@
       cursor: pointer;
 
       &:hover {
-        background-color: color.adjust(variables.$danger-color, $lightness: - variables.$hover-darken);
+        background-color: color.adjust(variables.$danger-color, $lightness: -10%);
       }
     }
   }
 
-  .add-feature-form {
+  .add-project-form {
     display: flex;
     gap: 10px;
     margin-top: 20px;
@@ -67,8 +53,7 @@
       cursor: pointer;
 
       &:hover {
-        background-color: color.adjust(variables.$primary-color, $lightness: - variables.$hover-darken);
-
+        background-color: color.adjust(variables.$primary-color, $lightness: -10%);
       }
     }
   }
